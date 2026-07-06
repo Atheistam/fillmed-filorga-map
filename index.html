@@ -43,10 +43,27 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; d
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #27ae60; color: #fff; padding: 8px 20px; border-radius: 20px; font-size: 12px; font-weight: 600; z-index: 9999; opacity: 0; transition: opacity .3s; }
 .toast.show { opacity: 1; }
 .leaflet-tooltip { z-index: 999 !important; }
+.ranking-panel { position: absolute; top: 80px; left: 10px; background: #1a1a2e; color: #eee; border-radius: 6px; padding: 10px; width: 300px; max-height: 500px; overflow-y: auto; z-index: 1000; display: none; font-size: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+.ranking-panel h3 { font-size: 11px; color: #fff; text-align: center; margin: 0 0 6px 0; }
+.ranking-panel table { width: 100%; border-collapse: collapse; }
+.ranking-panel td { padding: 2px 4px; border-bottom: 1px solid #333; }
+.ranking-panel .rank { color: #999; width: 20px; text-align: right; }
+.ranking-panel .dept { font-weight: 600; }
+.ranking-panel .pot { text-align: right; white-space: nowrap; }
+.ranking-panel .ratio { text-align: right; color: #2ecc71; width: 30px; }
+.ranking-panel .close-btn { float: right; background: none; border: none; color: #e94560; font-size: 14px; cursor: pointer; }
+.ranking-btn { background: #1a1a2e; color: #fff; border: 2px solid #1a1a2e; border-radius: 4px; width: 30px; height: 30px; font-size: 14px; font-weight: 800; cursor: pointer; line-height: 26px; text-align: center; }
+.ranking-btn:hover { background: #2a2a4e; }
 </style>
 </head>
 <body>
-<div id="map"></div>
+<div id="map">
+<div class="ranking-panel" id="ranking-panel">
+  <button class="close-btn" onclick="document.getElementById('ranking-panel').style.display='none'">&times;</button>
+  <h3>Top 20 — Potentiel</h3>
+  <table><tbody id="ranking-list"></tbody></table>
+</div>
+</div>
 <div id="sidebar">
     <h2>Carte Interactive</h2>
     <div class="totals-bar">
@@ -158,6 +175,41 @@ cities.forEach(function(c){
   m.bindTooltip('<b>'+c[0]+'</b><br>'+c[3].toLocaleString('fr-FR')+' hab.',{direction:'top',offset:[0,-8]});
   m.addTo(map);
 });
+
+// Ranking button + panel
+var rankingControl = L.control({position: 'topleft'});
+rankingControl.onAdd = function(map) {
+  var btn = L.DomUtil.create('button', 'ranking-btn');
+  btn.innerHTML = '&#9733;';
+  btn.title = 'Top 20';
+  btn.onclick = function() {
+    var panel = document.getElementById('ranking-panel');
+    if (panel.style.display === 'block') {
+      panel.style.display = 'none';
+    } else {
+      showRanking();
+      panel.style.display = 'block';
+    }
+  };
+  return btn;
+};
+rankingControl.addTo(map);
+
+function showRanking() {
+  var sorted = GEOJSON_DATA.features.map(function(f) {
+    var pot = f.properties.potential || 0;
+    var ca25 = f.properties.sales2025 || 0;
+    var ratio = pot > 0 ? Math.round(ca25 / pot * 100) : 0;
+    return {code: f.properties.code, name: f.properties.dept_name, pot: pot, ca25: ca25, ratio: ratio};
+  });
+  sorted.sort(function(a,b) { return b.pot - a.pot; });
+  var html = '';
+  for (var i = 0; i < 20; i++) {
+    var d = sorted[i];
+    html += '<tr><td class="rank">' + (i+1) + '</td><td class="dept">' + d.code + ' ' + d.name + '</td><td class="pot">' + d.pot.toLocaleString('fr-FR') + ' EUR</td><td class="ratio">' + d.ratio + '%</td></tr>';
+  }
+  document.getElementById('ranking-list').innerHTML = html;
+}
 
 function updateSidebar() {
     const agentTotals = {};
