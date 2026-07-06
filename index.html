@@ -43,7 +43,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; d
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #27ae60; color: #fff; padding: 8px 20px; border-radius: 20px; font-size: 12px; font-weight: 600; z-index: 9999; opacity: 0; transition: opacity .3s; }
 .toast.show { opacity: 1; }
 .leaflet-tooltip { z-index: 999 !important; }
-.ranking-panel { position: absolute; top: 80px; left: 10px; background: #1a1a2e; color: #eee; border-radius: 6px; padding: 10px; width: 300px; max-height: 500px; overflow-y: auto; z-index: 1000; display: none; font-size: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+.ranking-panel { position: absolute; top: 80px; left: 10px; background: #1a1a2e; color: #eee; border-radius: 6px; padding: 10px; width: 300px; max-height: 500px; overflow-y: auto; z-index: 2000; display: none; font-size: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
 .ranking-panel h3 { font-size: 11px; color: #fff; text-align: center; margin: 0 0 6px 0; }
 .ranking-panel table { width: 100%; border-collapse: collapse; }
 .ranking-panel td { padding: 2px 4px; border-bottom: 1px solid #333; }
@@ -54,6 +54,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; d
 .ranking-panel .close-btn { float: right; background: none; border: none; color: #e94560; font-size: 14px; cursor: pointer; }
 .ranking-btn { background: #1a1a2e; color: #fff; border: 2px solid #1a1a2e; border-radius: 4px; width: 30px; height: 30px; font-size: 14px; font-weight: 800; cursor: pointer; line-height: 26px; text-align: center; }
 .ranking-btn:hover { background: #2a2a4e; }
+.criteria-panel { position: absolute; top: 80px; left: 10px; background: #1a1a2e; color: #eee; border-radius: 6px; padding: 10px; width: 300px; max-height: 400px; overflow-y: auto; z-index: 2000; display: none; font-size: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+.criteria-panel h3 { font-size: 11px; color: #fff; text-align: center; margin: 0 0 6px 0; }
+.criteria-panel table { width: 100%; border-collapse: collapse; }
+.criteria-panel td { padding: 3px 6px; border-bottom: 1px solid #333; }
+.criteria-panel .wbar { display: inline-block; height: 8px; border-radius: 2px; background: #e94560; vertical-align: middle; }
+.criteria-panel .close-btn { float: right; background: none; border: none; color: #e94560; font-size: 14px; cursor: pointer; }
+.criteria-btn { background: #1a1a2e; color: #fff; border: 2px solid #1a1a2e; border-radius: 4px; width: 30px; height: 30px; font-size: 12px; font-weight: 800; cursor: pointer; line-height: 26px; text-align: center; }
+.criteria-btn:hover { background: #2a2a4e; }
 </style>
 </head>
 <body>
@@ -62,6 +70,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; d
   <button class="close-btn" onclick="document.getElementById('ranking-panel').style.display='none'">&times;</button>
   <h3>Top 20 — Potentiel</h3>
   <table><tbody id="ranking-list"></tbody></table>
+</div>
+<div class="criteria-panel" id="criteria-panel">
+  <button class="close-btn" onclick="document.getElementById('criteria-panel').style.display='none'">&times;</button>
+  <h3>Criteres et ponderations</h3>
+  <table><tbody id="criteria-list"></tbody></table>
 </div>
 </div>
 <div id="sidebar">
@@ -180,8 +193,11 @@ cities.forEach(function(c){
 var rankingControl = L.control({position: 'topleft'});
 rankingControl.onAdd = function(map) {
   var btn = L.DomUtil.create('button', 'ranking-btn');
-  btn.innerHTML = '&#9733;';
+  btn.innerHTML = 'ranking';
   btn.title = 'Top 20';
+  btn.style.width = 'auto';
+  btn.style.padding = '0 6px';
+  btn.style.fontSize = '9px';
   btn.onclick = function() {
     var panel = document.getElementById('ranking-panel');
     if (panel.style.display === 'block') {
@@ -189,11 +205,54 @@ rankingControl.onAdd = function(map) {
     } else {
       showRanking();
       panel.style.display = 'block';
+      document.getElementById('criteria-panel').style.display = 'none';
     }
   };
   return btn;
 };
 rankingControl.addTo(map);
+
+// Criteria button + panel
+var criteriaControl = L.control({position: 'topleft'});
+criteriaControl.onAdd = function(map) {
+  var btn = L.DomUtil.create('button', 'criteria-btn');
+  btn.innerHTML = 'criteria';
+  btn.title = 'Criteres';
+  btn.style.width = 'auto';
+  btn.style.padding = '0 6px';
+  btn.style.fontSize = '9px';
+  btn.onclick = function() {
+    var panel = document.getElementById('criteria-panel');
+    if (panel.style.display === 'block') {
+      panel.style.display = 'none';
+    } else {
+      panel.style.display = 'block';
+      document.getElementById('ranking-panel').style.display = 'none';
+    }
+  };
+  return btn;
+};
+criteriaControl.addTo(map);
+
+// Populate criteria panel on load
+(function() {
+  var criteria = [
+    {name:'Revenu median', w:26, src:'INSEE Filosofi'},
+    {name:'Tourisme', w:23, src:'Classification 6 tiers'},
+    {name:'Femmes 35-65 ans', w:12, src:'INSEE 2023'},
+    {name:'D9 (top 10%)', w:8, src:'INSEE Filosofi 2021'},
+    {name:'Praticiens/100K', w:7, src:'DRESS/Ameli 2022'},
+    {name:'% 50 ans et plus', w:6, src:'INSEE 2023'},
+    {name:'Solaire PV', w:6, src:'PVGIS v5.2'},
+    {name:'Urbanisation', w:6, src:'INSEE'},
+    {name:'PM2.5 inverse', w:6, src:'EEA/Atmo'},
+  ];
+  var html = '';
+  criteria.forEach(function(c) {
+    html += '<tr><td>' + c.name + '</td><td>' + c.w + '%</td><td><span class="wbar" style="width:' + (c.w*2) + 'px"></span></td><td style="font-size:8px;color:#999">' + c.src + '</td></tr>';
+  });
+  document.getElementById('criteria-list').innerHTML = html;
+})();
 
 function showRanking() {
   var sorted = GEOJSON_DATA.features.map(function(f) {
