@@ -395,7 +395,7 @@ function saveLocal() {
     var d = {};
     GEOJSON_DATA.features.forEach(function(f) { d[f.properties.code] = f.properties.agent; });
     var st = { a: AGENTS, d: d };
-    localStorage.setItem('fillmed_map', JSON.stringify(st));
+    localStorage.setItem('fillmed_map_v2', JSON.stringify(st));
     var t = document.getElementById('toast');
     t.textContent = 'Sauvegarde locale !';
     t.className = 'toast show';
@@ -432,7 +432,7 @@ function copyLink() {
     }
     function loadLocal() {
         try {
-            var s = localStorage.getItem('fillmed_map');
+            var s = localStorage.getItem('fillmed_map_v2');
             if (!s) return false;
             var st = JSON.parse(s);
             if (st.a) { AGENTS.length = 0; st.a.forEach(function(x) { AGENTS.push(x); }); }
